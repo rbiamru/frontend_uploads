@@ -30,7 +30,11 @@ jobs:
           --template-file Module3.yaml \
           --stack-name ${{ env.STACK_NAME }} \
           --capabilities CAPABILITY_IAM \
-          --no-fail-on-empty-changeset
+          --no-fail-on-empty-changeset || {
+          echo "CloudFormation deployment failed. Stack events:"
+          aws cloudformation describe-stack-events --stack-name ${{ env.STACK_NAME }} --max-items 10
+          exit 1
+        }
 
     - name: Get S3 bucket name and deploy frontend
       run: |
