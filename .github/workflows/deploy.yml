@@ -47,10 +47,15 @@ jobs:
           --query 'Stacks[0].Outputs[?OutputKey==`ApiGatewayURL`].OutputValue' \
           --output text)
         
-        # Update API endpoint in app.js
-        sed -i "s|API_GATEWAY_URL_PLACEHOLDER|$API_URL|g" frontend/app.js
+        # Create temp directory and copy frontend files
+        mkdir -p temp-frontend
+        cp -r frontend/* temp-frontend/
         
-        aws s3 sync frontend/ s3://$BUCKET_NAME \
+        # Update API endpoint in temp app.js
+        sed -i "s|API_GATEWAY_URL_PLACEHOLDER|$API_URL|g" temp-frontend/app.js
+        
+        # Deploy updated frontend
+        aws s3 sync temp-frontend/ s3://$BUCKET_NAME \
           --delete \
           --cache-control "max-age=86400"
 
