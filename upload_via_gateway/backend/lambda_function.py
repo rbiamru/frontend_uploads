@@ -19,6 +19,17 @@ ALLOWED_FILE_TYPES = ['.doc', '.txt', '.pdf', '.ppt']
 MAX_FILE_SIZE = 2 * 1024 * 1024  # 2MB in bytes
 
 def lambda_handler(event, context):
+    # Handle CORS preflight request
+    if event.get('httpMethod') == 'OPTIONS':
+        return {
+            'statusCode': 204,
+            'headers': {
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Methods': 'OPTIONS,POST,GET',
+                'Access-Control-Allow-Headers': 'Content-Type,Authorization'
+            }
+        }
+    
     environment = os.environ.get('ENVIRONMENT', 'dev')
     logger.info(f"Processing upload request in {environment} environment")
 
