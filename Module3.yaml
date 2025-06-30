@@ -280,3 +280,9 @@ Outputs:
     Value: !Sub 'https://${ApiGateway}.execute-api.${AWS::Region}.amazonaws.com/dev/upload'
     Export:
       Name: !Sub "${AWS::StackName}-ApiGatewayURL"
+
+  CloudFrontDistributionId:
+    Description: CloudFront Distribution ID
+    Value: !Ref CloudFrontDistribution
+    Export:
+      Name: !Sub "${AWS::StackName}-CloudFrontDistributionId"

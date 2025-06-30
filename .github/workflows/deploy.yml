@@ -36,7 +36,7 @@ jobs:
           exit 1
         }
 
-    - name: Get outputs and deploy frontend
+    - name: Update frontend and deploy
       run: |
         BUCKET_NAME=$(aws cloudformation describe-stacks \
           --stack-name ${{ env.STACK_NAME }} \
@@ -47,17 +47,23 @@ jobs:
           --query 'Stacks[0].Outputs[?OutputKey==`ApiGatewayURL`].OutputValue' \
           --output text)
         
-        # Create temp directory and copy frontend files
-        mkdir -p temp-frontend
-        cp -r frontend/* temp-frontend/
+        # Update API endpoint in app.js
+        sed -i "s|API_GATEWAY_URL_PLACEHOLDER|$API_URL|g" frontend/app.js
         
-        # Update API endpoint in temp app.js
-        sed -i "s|API_GATEWAY_URL_PLACEHOLDER|$API_URL|g" temp-frontend/app.js
-        
-        # Deploy updated frontend
-        aws s3 sync temp-frontend/ s3://$BUCKET_NAME \
+        # Sync to S3
+        aws s3 sync frontend/ s3://$BUCKET_NAME \
           --delete \
-          --cache-control "max-age=86400"
+          --acl public-read
+
+    - name: Invalidate CloudFront cache
+      run: |
+        DISTRIBUTION_ID=$(aws cloudformation describe-stacks \
+          --stack-name ${{ env.STACK_NAME }} \
+          --query 'Stacks[0].Outputs[?OutputKey==`CloudFrontDistributionId`].OutputValue' \
+          --output text)
+        aws cloudfront create-invalidation \
+          --distribution-id $DISTRIBUTION_ID \
+          --paths "/*"
 
     - name: Update Lambda function
       run: |
