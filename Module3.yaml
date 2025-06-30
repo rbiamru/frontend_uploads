@@ -1,0 +1,231 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Gateway DataSecure Inc. Document Upload System - Environment-Aware (dev/prod)'
+
+Parameters:
+  ProjectName:
+    Type: String
+    Default: gateway-datasecure-inc
+    Description: Project name prefix for resources
+
+  DevEnvironment:
+    Type: String
+    Default: dev
+    Description: Development environment name
+    AllowedValues:
+      - dev
+
+  ProdEnvironment:
+    Type: String
+    Default: prod
+    Description: Production environment name
+    AllowedValues:
+      - prod
+ 
+  AlarmTopicArn:
+    Type: String
+    Description: 'Existing SNS topic to receive CloudWatch alarm notifications'
+    Default: 'arn:aws:sns:us-east-1:467719059402:Default_CloudWatch_Alarms_Topic'
+
+  ReplicaRegion:
+    Type: String
+    Default: ca-central-1
+    AllowedValues:
+      - ca-central-1          # Canada (Central)
+      - us-west-2             # OR — add others if you like
+      - us-east-2             # OH
+    Description: >-
+      Secondary AWS Region for cross-region replication of the static-site
+      bucket. Must not be the same as the stack's Region.
+
+Resources:
+  # S3 Bucket for Frontend Static Website Hosting
+  FrontendBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub "my-frontend-uploads-${AWS::AccountId}-${AWS::Region}"
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: false
+        BlockPublicPolicy: false
+        IgnorePublicAcls: false
+        RestrictPublicBuckets: false
+      OwnershipControls:
+        Rules:
+          - ObjectOwnership: ObjectWriter
+      WebsiteConfiguration:
+        IndexDocument: index.html
+        ErrorDocument: index.html
+      CorsConfiguration:
+        CorsRules:
+          - AllowedHeaders:
+              - '*'
+            AllowedMethods:
+              - GET
+              - POST
+            AllowedOrigins:
+              - '*'
+            MaxAge: 3000
+
+  # S3 Bucket Policy to allow public access to the static website
+  FrontendBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref FrontendBucket
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: PublicReadForGetBucketObjects
+            Effect: Allow
+            Principal: '*'
+            Action: 's3:GetObject'
+            Resource: !Sub 'arn:aws:s3:::${FrontendBucket}/*'
+
+  # CloudFront Distribution
+  CloudFrontDistribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Origins:
+          - Id: S3Origin
+            DomainName: !GetAtt FrontendBucket.RegionalDomainName
+            S3OriginConfig:
+              OriginAccessIdentity: ''
+        DefaultCacheBehavior:
+          TargetOriginId: S3Origin
+          ViewerProtocolPolicy: redirect-to-https
+          AllowedMethods:
+            - GET
+            - HEAD
+          CachedMethods:
+            - GET
+            - HEAD
+          ForwardedValues:
+            QueryString: false
+            Cookies:
+              Forward: none
+        Enabled: true
+        DefaultRootObject: index.html
+
+  # S3 Bucket for Document Storage - Dev Environment
+  DocumentBucketDev:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub '${ProjectName}-docs-${DevEnvironment}-${AWS::AccountId}'
+      CorsConfiguration:
+        CorsRules:
+          - AllowedHeaders:
+              - '*'
+            AllowedMethods:
+              - GET
+              - POST
+              - PUT
+            AllowedOrigins:
+              - '*'
+            MaxAge: 3000
+
+  # S3 Bucket for Document Storage - Prod Environment
+  DocumentBucketProd:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub '${ProjectName}-docs-${ProdEnvironment}-${AWS::AccountId}'
+      CorsConfiguration:
+        CorsRules:
+          - AllowedHeaders:
+              - '*'
+            AllowedMethods:
+              - GET
+              - POST
+              - PUT
+            AllowedOrigins:
+              - '*'
+            MaxAge: 3000
+
+  # DynamoDB Table for Document Metadata
+  DocumentMetadataTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: DocumentMetadata
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: ClientID
+          AttributeType: S
+        - AttributeName: CaseID
+          AttributeType: S
+      KeySchema:
+        - AttributeName: ClientID
+          KeyType: HASH
+        - AttributeName: CaseID
+          KeyType: RANGE
+
+  # IAM Role for Lambda Function
+  LambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: S3DynamoDBAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:PutObject
+                  - s3:DeleteObject
+                Resource: !Sub 'arn:aws:s3:::${DocumentBucketDev}/*'
+              - Effect: Allow
+                Action:
+                  - dynamodb:PutItem
+                  - dynamodb:GetItem
+                  - dynamodb:UpdateItem
+                  - dynamodb:DeleteItem
+                Resource: !GetAtt DocumentMetadataTable.Arn
+
+  # Lambda Function for Dev Environment
+  LambdaFunctionDev:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub '${ProjectName}-upload-function-${DevEnvironment}'
+      Handler: lambda_function.lambda_handler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Runtime: python3.9
+      Timeout: 30
+      MemorySize: 256
+      Environment:
+        Variables:
+          UPLOAD_BUCKET: !Ref DocumentBucketDev
+          TABLE_NAME: !Ref DocumentMetadataTable
+          ENVIRONMENT: !Ref DevEnvironment
+      Code:
+        ZipFile: |
+          import json
+          def lambda_handler(event, context):
+              return {'statusCode': 200, 'body': json.dumps('Hello from Lambda!')}
+
+
+
+Outputs:
+  FrontendBucketName:
+    Description: Name of the frontend S3 bucket
+    Value: !Ref FrontendBucket
+    Export:
+      Name: !Sub "${AWS::StackName}-FrontendBucket"
+
+  CloudFrontURL:
+    Description: CloudFront distribution URL
+    Value: !GetAtt CloudFrontDistribution.DomainName
+    Export:
+      Name: !Sub "${AWS::StackName}-CloudFrontURL"
+
+  LambdaFunctionName:
+    Description: Lambda function name
+    Value: !Ref LambdaFunctionDev
+    Export:
+      Name: !Sub "${AWS::StackName}-LambdaFunction"

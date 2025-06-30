@@ -1,0 +1,51 @@
+name: Deploy AWS Infrastructure and Application
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  AWS_REGION: us-east-1
+  STACK_NAME: gateway-datasecure-stack
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ env.AWS_REGION }}
+
+    - name: Deploy CloudFormation stack
+      run: |
+        aws cloudformation deploy \
+          --template-file Module3.yaml \
+          --stack-name ${{ env.STACK_NAME }} \
+          --capabilities CAPABILITY_IAM \
+          --no-fail-on-empty-changeset
+
+    - name: Get S3 bucket name and deploy frontend
+      run: |
+        BUCKET_NAME=$(aws cloudformation describe-stacks \
+          --stack-name ${{ env.STACK_NAME }} \
+          --query 'Stacks[0].Outputs[?OutputKey==`FrontendBucketName`].OutputValue' \
+          --output text)
+        aws s3 sync frontend/ s3://$BUCKET_NAME \
+          --delete \
+          --cache-control "max-age=86400"
+
+    - name: Update Lambda function
+      run: |
+        cd upload_via_gateway/backend
+        zip -r lambda-function.zip lambda_function.py
+        aws lambda update-function-code \
+          --function-name gateway-datasecure-inc-upload-function-dev \
+          --zip-file fileb://lambda-function.zip

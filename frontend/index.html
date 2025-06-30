@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gateway DataSecure Inc. - Document Upload System</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Gateway DataSecure Inc.</h1>
+            <h2>Secure Document Upload System</h2>
+            <div class="environment-badge" id="environment-badge">DEV</div>
+        </header>
+
+        <main>
+            <div class="upload-form">
+                <h3>Upload Document</h3>
+                <form id="document-upload-form">
+                    <div class="form-group">
+                        <label for="clientId">Client ID:</label>
+                        <input type="text" id="clientId" name="clientId" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="caseId">Case ID:</label>
+                        <input type="text" id="caseId" name="caseId" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="documentType">Document Type:</label>
+                        <select id="documentType" name="documentType" required>
+                            <option value="">Select document type</option>
+                            <option value="contract">Contract</option>
+                            <option value="invoice">Invoice</option>
+                            <option value="report">Report</option>
+                            <option value="correspondence">Correspondence</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="file">Select File:</label>
+                        <input type="file" id="file" name="file" required>
+                        <div class="file-info">
+                            <p>Allowed file types: .doc, .txt, .pdf, .ppt</p>
+                            <p>Maximum file size: 2MB</p>
+                        </div>
+                    </div>
+                    
+                    <div class="form-actions">
+                        <button type="submit" id="upload-button">Upload Document</button>
+                    </div>
+                </form>
+            </div>
+            
+            <div class="upload-status" id="upload-status">
+                <div class="status-message" id="status-message"></div>
+                <div class="upload-details" id="upload-details"></div>
+            </div>
+        </main>
+
+        <footer>
+            <p>&copy; 2025 Gateway DataSecure Inc. All rights reserved.</p>
+        </footer>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

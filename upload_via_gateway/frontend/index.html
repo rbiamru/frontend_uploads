@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gateway DataSecure Inc Portal</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Gateway DataSecure Inc Portal</h1>
+            <p>Secure Document Upload System</p>
+        </header>
+        
+        <div class="upload-section">
+            <form id="uploadForm">
+                <div class="form-group">
+                    <label for="clientId">Client ID:</label>
+                    <input type="text" id="clientId" name="clientId" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="caseId">Case ID:</label>
+                    <input type="text" id="caseId" name="caseId" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="documentType">Document Type:</label>
+                    <select id="documentType" name="documentType" required>
+                        <option value="">Select document type</option>
+                        <option value="financial">Financial</option>
+                        <option value="legal">Legal</option>
+                        <option value="medical">Medical</option>
+                        <option value="personal">Personal</option>
+                    </select>
+                </div>
+                
+                <div class="form-group file-input">
+                    <label for="document">Select Document:</label>
+                    <input type="file" id="document" name="document" required>
+                    <p class="file-info">Supported formats: .doc, .txt, .pdf, .ppt (Max size: 2MB)</p>
+                </div>
+                
+                <button type="submit" id="uploadButton">Upload Document</button>
+            </form>
+        </div>
+        
+        <div id="statusMessage" class="status-message"></div>
+    </div>
+    
+   <script src="https://sdk.amazonaws.com/js/aws-sdk-2.1436.0.min.js"></script>
+  <script src="script_api_s3.js"></script>
+</body>
+</html> 
