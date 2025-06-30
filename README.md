@@ -1,238 +1,126 @@
 # Gateway DataSecure Inc. Document Upload System
 
-## Overview
+A serverless document upload system built with AWS services and automated CI/CD deployment.
 
-This document provides comprehensive documentation for the Gateway DataSecure Inc. Document Upload System, an environment-aware solution for secure document submission and storage. The system supports separate development and production environments, with appropriate security measures and logging capabilities.
+## Architecture
 
-## Table of Contents
+- **Frontend**: Static website hosted on S3 with CloudFront CDN
+- **Backend**: Lambda function for file processing
+- **Storage**: S3 buckets for documents, DynamoDB for metadata
+- **API**: API Gateway for REST endpoints
+- **Deployment**: GitHub Actions for automated CI/CD
 
-1. [Configuration Steps](#configuration-steps)
-2. [Environment Separation (Dev/Prod)](#environment-separation-devprod)
-3. [Metadata Schema Description](#metadata-schema-description)
-4. [API Sample Request/Response](#api-sample-requestresponse)
-5. [Security and Logging Implementation](#security-and-logging-implementation)
+## Features
 
-## Configuration Steps
+- ✅ Secure document upload (PDF, DOC, TXT, PPT)
+- ✅ File size validation (2MB limit)
+- ✅ Client/Case ID organization
+- ✅ Environment-aware (dev/prod)
+- ✅ CORS-enabled API
+- ✅ Automated deployment pipeline
 
-### 1. Infrastructure Deployment
+## Live Demo
 
-The system is deployed using AWS CloudFormation with the following steps:
+- **Website**: https://ds6b4524g0n5p.cloudfront.net/
+- **API Endpoint**: https://20k4m2p4g4.execute-api.us-east-1.amazonaws.com/dev/upload
 
-1. **Deploy CloudFormation Template**:
+## Quick Start
+
+### Prerequisites
+- AWS Account
+- GitHub repository
+- AWS CLI configured
+
+### Deployment
+
+1. **Clone and Setup**
    ```bash
-   aws cloudformation create-stack --stack-name gateway-datasecure-inc --template-body file://Module3.yaml --capabilities CAPABILITY_NAMED_IAM
+   git clone <your-repo>
+   cd frontend-upload
    ```
 
-2. **Get Deployment Outputs**:
+2. **Configure GitHub Secrets**
+   - `AWS_ACCESS_KEY_ID`
+   - `AWS_SECRET_ACCESS_KEY`
+
+3. **Deploy**
    ```bash
-   aws cloudformation describe-stacks --stack-name gateway-datasecure-inc --query "Stacks[0].Outputs"
+   git push origin main
    ```
+   GitHub Actions automatically deploys the entire stack.
 
-3. **Upload Frontend Files**:
-   ```bash
-   aws s3 cp frontend/ s3://gateway-datasecure-inc-frontend-043088695051/ --recursive
-   ```
-
-4. **Update API Endpoint**:
-   Edit `script_api_s3.js` to update the API_BASE variable:
-   ```javascript
-   const API_BASE = "https://rrdb8rze7l.execute-api.us-east-1.amazonaws.com/dev";
-   ```
-
-### 2. System Components
-
-- **Frontend**: Static website hosted on S3 (http://gateway-datasecure-inc-frontend-043088695051.s3-website-us-east-1.amazonaws.com)
-- **API Gateway**: REST API with dev and prod stages (https://rrdb8rze7l.execute-api.us-east-1.amazonaws.com)
-- **Lambda Functions**: Environment-specific functions for processing uploads
-- **S3 Buckets**: Separate buckets for dev and prod document storage
-- **DynamoDB**: Table for document metadata storage (DocumentMetadata)
-
-## Environment Separation (Dev/Prod)
-
-The system implements environment separation through several mechanisms:
-
-### 1. Separate Infrastructure
-
-- **S3 Buckets**: 
-  - Development: `gateway-datasecure-inc-docs-dev-043088695051`
-  - Production: `gateway-datasecure-inc-docs-prod-043088695051`
-
-- **Lambda Functions**:
-  - Development: `gateway-datasecure-inc-upload-function-dev`
-  - Production: `gateway-datasecure-inc-upload-function-prod`
-
-### 2. API Gateway Stages
-
-- **Development Stage**: `/dev`
-- **Production Stage**: `/prod`
-
-Each stage is connected to its corresponding Lambda function.
-
-### 3. Environment Variables
-
-Each Lambda function has environment-specific variables:
+## Project Structure
 
 ```
-UPLOAD_BUCKET: [environment-specific S3 bucket]
-TABLE_NAME: DocumentMetadata
-ENVIRONMENT: dev or prod
+├── frontend/                 # Static website files
+│   ├── index.html
+│   ├── app.js               # Frontend logic
+│   └── styles.css
+├── upload_via_gateway/
+│   └── backend/
+│       └── lambda_function.py # Lambda function code
+├── .github/workflows/
+│   └── deploy.yml           # CI/CD pipeline
+├── Module3.yaml             # CloudFormation template
+└── README.md
 ```
 
-### 4. Metadata Tagging
+## AWS Resources Created
 
-All resources (S3 objects and DynamoDB records) are tagged with the environment:
+- S3 Buckets: Frontend hosting + document storage
+- CloudFront: CDN distribution
+- Lambda: File upload processing
+- API Gateway: REST API endpoints
+- DynamoDB: Document metadata
+- IAM Roles: Service permissions
 
-- S3 object metadata includes `environment: dev` or `environment: prod`
-- DynamoDB records include an `environment` attribute
+## Usage
 
-### 5. Frontend Environment Detection
+1. Open the website URL
+2. Fill in Client ID, Case ID, and Document Type
+3. Select a file (PDF, DOC, TXT, PPT)
+4. Click "Upload Document"
+5. Files are stored in S3 with metadata in DynamoDB
 
-The frontend JavaScript automatically detects the environment based on the URL:
-- If URL contains "prod", it uses the production API endpoint
-- Otherwise, it uses the development API endpoint
+## File Organization
 
-## Metadata Schema Description
-
-### DynamoDB Table Schema
-
-**Table Name**: `DocumentMetadata`
-
-**Primary Key**:
-- Partition Key: `ClientID` (String)
-- Sort Key: `CaseID` (String)
-
-**Attributes**:
-
-| Attribute | Type | Description |
-|-----------|------|-------------|
-| ClientID | String | Client identifier (partition key) |
-| CaseID | String | Case identifier (sort key) |
-| document_type | String | Type of document (e.g., financial, legal) |
-| date_stored | String | Date when document was stored (YYYY-MM-DD) |
-| file_location | String | S3 URI to the stored document |
-| environment | String | Environment identifier (dev/prod) |
-| file_name | String | Original filename |
-| file_size | Number | Size of file in bytes |
-| file_type | String | File extension without dot |
-| upload_timestamp | String | ISO format timestamp of upload |
-
-### S3 Object Metadata
-
-Each document stored in S3 includes the following metadata:
-
-| Metadata Key | Description |
-|-------------|-------------|
-| client-id | Client identifier |
-| case-id | Case identifier |
-| document-type | Type of document |
-| date-stored | Date when document was stored |
-| environment | Environment identifier (dev/prod) |
-
-### File Structure in S3
-
-Files are organized in S3 using the following path structure:
+Documents are stored in S3 with the structure:
 ```
-{ClientID}/{CaseID}/{DocumentType}/{FileName}
+s3://bucket-name/
+└── {ClientID}/
+    └── {CaseID}/
+        └── {DocumentType}/
+            └── {filename}
 ```
 
-Example:
-```
-ACME/CASE123/legal/contract.pdf
-```
+## Environment Support
 
-## API Sample Request/Response
+- **Dev**: Default environment for testing
+- **Prod**: Production environment (URL-based detection)
 
-### Upload Document Request
+## Monitoring
 
-**Endpoint**: `https://rrdb8rze7l.execute-api.us-east-1.amazonaws.com/dev/upload`
+- CloudWatch Logs: Lambda function logs
+- S3 Access Logs: File access tracking
+- API Gateway Logs: Request/response monitoring
 
-**Method**: POST
+## Security
 
-**Headers**:
-```
-Content-Type: application/json
-```
+- CORS-enabled for cross-origin requests
+- IAM roles with least privilege access
+- S3 bucket policies for secure access
+- File type and size validation
 
-**Request Body**:
-```json
-{
-  "clientId": "ACME",
-  "caseId": "CASE123",
-  "documentType": "legal",
-  "fileName": "contract.pdf",
-  "fileContent": "JVBERi0xLjMKJcTl8uXrp/Og0MTGCjQgMCBvYmoKPDwgL0xlbmd0aCA1IDAgUiAv..."
-}
-```
+## Cost Optimization
 
-### Successful Response
+- S3 Standard storage class
+- Pay-per-request DynamoDB billing
+- CloudFront caching for reduced S3 requests
+- Lambda with optimized memory allocation
 
-**Status Code**: 200
+## Support
 
-**Response Body**:
-```json
-{
-  "message": "File uploaded successfully",
-  "location": "ACME/CASE123/legal/contract.pdf",
-  "environment": "dev"
-}
-```
-
-### Error Response
-
-**Status Code**: 400
-
-**Response Body**:
-```json
-{
-  "error": "Invalid file type. Allowed types: .doc, .txt, .pdf, .ppt"
-}
-```
-
-## Security and Logging Implementation
-
-### Security Measures
-
-1. **File Validation**:
-   - File type validation (only .doc, .txt, .pdf, .ppt allowed)
-   - File size validation (maximum 2MB)
-   - Input validation for all required fields
-
-2. **Access Control**:
-   - S3 bucket policies restrict access to authorized users
-   - Lambda functions use IAM roles with least privilege
-   - API Gateway uses appropriate IAM permissions
-
-3. **CORS Configuration**:
-   - Configured on both S3 buckets and API Gateway
-   - Prevents unauthorized cross-origin requests
-
-4. **Data Handling**:
-   - Base64 encoding for secure file transfer
-   - Proper error handling to prevent information leakage
-
-### Logging Implementation
-
-1. **Lambda Logging**:
-   - Comprehensive logging using Python's logging module
-   - Log level set to INFO for normal operations
-   - Exception details logged for troubleshooting
-   - Environment-specific logging
-
-2. **Log Events**:
-   - Request processing start/end
-   - File validation results
-   - S3 upload operations
-   - DynamoDB operations
-   - Error conditions with details
-
-3. **CloudWatch Integration**:
-   - All Lambda logs sent to CloudWatch Logs
-   - Log groups organized by function name
-   - Log retention configured appropriately
-
-4. **Audit Trail**:
-   - Upload timestamp stored in DynamoDB
-   - Environment information included in logs and metadata
-   - File operations tracked with client and case IDs
-
----
+For issues or questions, check:
+- CloudWatch Logs for Lambda errors
+- API Gateway logs for request issues
+- GitHub Actions logs for deployment problems
