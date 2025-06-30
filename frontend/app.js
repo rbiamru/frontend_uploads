@@ -2,7 +2,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Configuration
     const config = {
         // This will be replaced with your actual API Gateway endpoint
-        apiEndpoint: 'https://YOUR_API_GATEWAY_ID.execute-api.YOUR_REGION.amazonaws.com/dev/upload',
+        apiEndpoint: 'API_GATEWAY_URL_PLACEHOLDER',
         maxFileSize: 2 * 1024 * 1024, // 2MB in bytes
         allowedFileTypes: ['.doc', '.txt', '.pdf', '.ppt']
     };

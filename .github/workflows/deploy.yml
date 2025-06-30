@@ -48,7 +48,7 @@ jobs:
           --output text)
         
         # Update API endpoint in app.js
-        sed -i "s|https://YOUR_API_GATEWAY_ID.execute-api.YOUR_REGION.amazonaws.com/dev/upload|$API_URL|g" frontend/app.js
+        sed -i "s|API_GATEWAY_URL_PLACEHOLDER|$API_URL|g" frontend/app.js
         
         aws s3 sync frontend/ s3://$BUCKET_NAME \
           --delete \
