@@ -21,7 +21,7 @@ A serverless document upload system built with AWS services and automated CI/CD 
 
 ## Live Demo
 
-- **Website**: https://ds6b4524g0n5p.cloudfront.net/
+- [**Live Website**](https://d29o6u4zvdzafs.cloudfront.net/)
 - **API Endpoint**: https://20k4m2p4g4.execute-api.us-east-1.amazonaws.com/dev/upload
 
 ## Quick Start
